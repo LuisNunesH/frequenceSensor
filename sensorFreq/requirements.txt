@@ -1,0 +1,4 @@
+datetime
+sqlalchemy
+mysql-connector-python
+pyodbc
