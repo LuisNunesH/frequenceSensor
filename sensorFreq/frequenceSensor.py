@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import DB_TYPE, MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
@@ -61,6 +62,39 @@ def generate_heart_rate_data(session, min_value, max_value, lim):
         except Exception as e:
             print("Erro durante a geração de dados:", e)
 
+def simulate_running(session, min_value, max_value, run_duration):
+    start_time = datetime.now()
+    end_time = start_time + timedelta(seconds=run_duration)
+
+    initial_hr = min_value
+    final_hr = max_value
+
+    timestamps = []
+    heart_rates = []
+
+    while datetime.now() < end_time:
+        try:
+            timestamp = datetime.now()
+            progress = (timestamp - start_time).total_seconds() / run_duration
+            heart_rate = int(initial_hr + progress * (final_hr - initial_hr))
+            print(f"Timestamp: {timestamp}, Heart rate: {heart_rate}")
+            insert_data(session, timestamp, heart_rate, "Capybara", 4)
+            timestamps.append(timestamp)
+            heart_rates.append(heart_rate)
+            time.sleep(1)
+        except Exception as e:
+            print("Erro durante a simulação de corrida:", e)
+    plot_heart_rate(timestamps, heart_rates)
+
+def plot_heart_rate(timestamps, heart_rates):
+    plt.plot(timestamps, heart_rates)
+    plt.xlabel('Timestamp')
+    plt.ylabel('Heart Rate')
+    plt.title('Heart Rate Variation')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
 @app.route('/<int:min_value>/<int:max_value>/<int:lim>')
 def start_data_generation(min_value, max_value, lim):
     connection = connect_to_database(DB_TYPE)
@@ -71,6 +105,15 @@ def start_data_generation(min_value, max_value, lim):
                 next(generator)
         except StopIteration:
             return jsonify({"message": "Data generation completed."}), 200
+    else:
+        return jsonify({"error": "Could not connect to the database. Please check the configuration."}), 500
+    
+@app.route('/run/<int:min_value>/<int:max_value>/<int:run_duration>')
+def start_running_simulation(min_value, max_value, run_duration):
+    connection = connect_to_database(DB_TYPE)
+    if connection:
+        simulate_running(connection, min_value, max_value, run_duration)
+        return jsonify({"message": "Running simulation completed."}), 200
     else:
         return jsonify({"error": "Could not connect to the database. Please check the configuration."}), 500
 
