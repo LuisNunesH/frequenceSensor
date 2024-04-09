@@ -48,34 +48,15 @@ def insert_data(session, timestamp, heart_rate, animal, sensor_id):
         print("Erro ao inserir dados no banco de dados:", e)
         session.rollback()
 
-def generate_heart_rate_data(session, min_value, max_value, lim, average_heart_rate, smoothing_factor):
-    start_time = datetime.now()
-    end_time = start_time + timedelta(seconds=lim)
-    timestamps = []
-    heart_rates = []
-    smoothed_heart_rate = average_heart_rate
-    while datetime.now() < end_time:  # Verifica o tempo a cada iteração
-        try:
-            timestamp = datetime.now()
-            timestamp = timestamp.replace(microsecond=0)
-            animal = "Capybara"
-            sensor_id = 4
-            noise = random.uniform(-5, 5)
-            heart_rate = random.randint(min_value, max_value) + noise
-            smoothed_heart_rate = smoothing_factor * heart_rate + (1 - smoothing_factor) * smoothed_heart_rate
-            heart_rate = int(round(smoothed_heart_rate))
-            print(f"Timestamp: {timestamp}, Heart rate: {heart_rate}")
-            insert_data(session, timestamp, heart_rate, animal, sensor_id)
-            yield timestamp, heart_rate
-            timestamps.append(timestamp)
-            heart_rates.append(heart_rate)
-            interval = 1
-            time.sleep(interval)
-            end_time = start_time + timedelta(seconds=lim)  # Atualiza end_time
-        except Exception as e:
-            print("Erro durante a geração de dados:", e)
-
-    plot_heart_rate(timestamps, heart_rates)
+def average_heart_rate(lim, av):
+    offset = 2  # Offset máximo permitido
+    inicio = time.time()
+    while time.time() - inicio < lim:
+        valor = random.randint(av - offset, av + offset)
+        valor = max(av - offset, min(valor, av + offset))  # Garantir que o valor está dentro do intervalo permitido
+        print(valor)
+        yield valor
+        time.sleep(1)  # Aguardar 1 segundo antes de gerar o próximo valor
 
 def sigmoid(x, midpoint, slope):
     return 1 / (1 + np.exp(-slope * (x - midpoint)))
@@ -124,18 +105,10 @@ def simulate_running(session, min_value, max_value, run_duration):
 
     plot_heart_rate(timestamps, heart_rates)
 
-@app.route('/<int:min_value>/<int:max_value>/<int:lim>/<int:average_heart_rate>/<float:smoothing_factor>')
-def start_data_generation(min_value, max_value, lim, average_heart_rate, smoothing_factor):
-    connection = connect_to_database(DB_TYPE)
-    if connection:
-        generator = generate_heart_rate_data(connection, min_value, max_value, lim, average_heart_rate, smoothing_factor)
-        try:
-            while True:
-                next(generator)
-        except StopIteration:
-            return jsonify({"message": "Data generation completed."}), 200
-    else:
-        return jsonify({"error": "Could not connect to the database. Please check the configuration."}), 500
+@app.route('/<int:lim>/<int:av>')
+def start_data_generation(lim, av):
+    heart_rate_generator = average_heart_rate(lim, av)
+    return jsonify({'heart_rate': list(heart_rate_generator)})
     
 @app.route('/run/<int:min_value>/<int:max_value>/<int:run_duration>')
 def start_running_simulation(min_value, max_value, run_duration):
