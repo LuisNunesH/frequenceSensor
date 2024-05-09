@@ -2,3 +2,4 @@ config.py
 venv/
 credenciaisBdAzure.txt
 __pycache__/
+aws_integrations.py
