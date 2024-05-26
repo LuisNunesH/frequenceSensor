@@ -18,7 +18,7 @@ from azure.iot.device import IoTHubDeviceClient, Message
 RECEIVED_MESSAGES = 0
 
 def iothub_client_init():
-    CONNECTION_STRING = "HostName=iot-hub-heart-rate-electric-pulse.azure-devices.net;DeviceId=sensor-heart-rate-electric-pulse;SharedAccessKey=I770fE1rCdRMnwpC1vPaWqeNuW2VPNbYDAIoTNnLIf0="
+    CONNECTION_STRING = "HostName=iot-hub-luis.azure-devices.net;DeviceId=device-luis;SharedAccessKey=u1Wm+WOT59pQ4a9q+LbCZ40lsLmv5Zh+7AIoTK1GvUM="
     client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
     return client
 
@@ -94,18 +94,18 @@ def average_heart_rate(lim, av):
                 'sensor_id': 21,
                 'heart-rate': heart_rate
             },
-            'timestamp': timestamp_str
+            'datetime': timestamp_str
         }
         yield heart_rate
         try:
-            send_json_to_s3(json_value, f"heart-rate-sensor_{current_timestamp}.json")
+            # send_json_to_s3(json_value, f"heart-rate-sensor_{current_timestamp}.json")
             print(json_value)
             json_str = json.dumps(json_value)
             mensagem = Message(json_str, content_encoding='utf-8', content_type='application/json')
             client.send_message(mensagem)
         except Exception as e:
             print("Ocorreu um erro:", e)
-        time.sleep(10)
+        time.sleep(60)
     client.disconnect()
 
 def sigmoid(x, midpoint, slope):
@@ -155,7 +155,7 @@ def simulate_running(session, min_value, max_value, run_duration):
                     'sensor_id': 21,
                     'heart-rate': smoothed_heart_rate
                 },
-                'timestamp': timestamp_str
+                'datetime': timestamp_str
             }
 
             insert_data(session, timestamp, smoothed_heart_rate, "Capybara", 4)
@@ -189,9 +189,9 @@ def simulate_electrical_pulse(min_voltage, max_voltage, min_pulse_width, max_pul
             timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
             json_value = {
-                'Peak Voltage': f'{peak_voltage:.2f}V',
-                'Pulse Width': f'{pulse_width}ms',
-                'Timestamp': timestamp_str
+                'peak voltage': f'{peak_voltage:.2f}V',
+                'pulse width': f'{pulse_width}ms',
+                'datetime': timestamp_str
             }
 
             json_str = json.dumps(json_value)
